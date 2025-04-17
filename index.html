@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLP Web Vehicle Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: white;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #222;
+            color: white;
+            padding: 15px 50px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        nav {
+            display: flex;
+            gap: 15px;
+        }
+        
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+        }
+        
+        .road {
+            position: absolute;
+            left: 50%;
+            top: 15%;
+            width: 50%;
+            height: 65%;
+            background: blanchedalmond;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            border: 5px solid white;
+            transform: translateX(-50%);
+        }
+        
+        .car {
+            font-size: 80px;
+            position: absolute;
+            transition: transform 0.1s linear;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #ff5722;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        
+        button:hover {
+            background: #e64a19;
+            transform: scale(1.1);
+        }
+        
+        .snowflake {
+            position: absolute;
+            top: -10px;
+            color: white;
+            font-size: 12px;
+            opacity: 0.8;
+            animation: fall linear infinite;
+        }
+        
+        @keyframes fall {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(100vh);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            nav {
+                flex-direction: column;
+                gap: 0px;
+            }
+            .road {
+                width: 80%;
+                height: 50%;
+                top: 20%;
+            }
+            .car {
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="title">NLP Vehicle Simulator</div>
+    </header>
+
+    <div class="road">
+        <div class="car" id="car">🚗</div>
+    </div>
+
+    <div class="controls">
+        <button onclick="startListening()">Start Listening</button>
+        <p id="command-text">Listening: <span id="result">None</span></p>
+    </div>
+
+    <script>
+        let car = document.getElementById("car");
+        let posX = 3,
+            posY = 0;
+
+        function moveCar(direction) {
+            if (direction === "FORWARD") posY -= 50;
+            if (direction === "BACKWARD") posY += 50;
+            if (direction === "LEFT") posX -= 50;
+            if (direction === "RIGHT") posX += 50;
+            car.style.transform = `translate(${posX}px, ${posY}px)`;
+        }
+
+        function startListening() {
+            const recognition = new(window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+
+            recognition.onresult = function(event) {
+                const command = event.results[0][0].transcript;
+                document.getElementById("result").innerText = command;
+                fetch('/process_command', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            command: command
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => moveCar(data.action));
+            };
+
+            recognition.start();
+        }
+
+        function createSnowflake() {
+            const snowflake = document.createElement("div");
+            snowflake.className = "snowflake";
+            snowflake.innerHTML = "❄";
+            snowflake.style.left = Math.random() * window.innerWidth + "px";
+            snowflake.style.animationDuration = (Math.random() * 3 + 2) + "s";
+            document.body.appendChild(snowflake);
+            setTimeout(() => snowflake.remove(), 5000);
+        }
+
+        setInterval(createSnowflake, 200);
+    </script>
+
+</body>
+
+</html>
